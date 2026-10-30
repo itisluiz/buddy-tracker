@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1720">
+  <title>Buddy Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%2322c55e'/%3E%3Ccircle cx='16' cy='16' r='5' fill='white'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <div class="title">Buddy Tracker</div>
+        <div class="subtitle" id="boardName">No board connected</div>
+      </div>
+    </div>
+    <div class="status">
+      <span class="chip" id="chipBattery" hidden></span>
+      <span class="chip" id="chipSats" hidden></span>
+      <button class="chip conn" id="connBtn" data-state="off">Connect</button>
+      <button class="sos-btn" id="sosBtn" title="Send SOS to all boards" disabled>SOS</button>
+    </div>
+  </header>
+
+  <div class="notice" id="unsupported" hidden>
+    This browser can't use Bluetooth. Open this page in <b>Chrome on Android</b> (or desktop Chrome / Edge).
+    iPhone browsers and Firefox don't support Web Bluetooth.
+  </div>
+
+  <main>
+    <!-- Map -->
+    <section class="panel active" id="tab-map">
+      <div id="map"></div>
+      <div class="map-controls">
+        <button class="fab" id="followBtn" title="Follow my position" aria-pressed="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /><circle cx="12" cy="12" r="7" fill="none"/></svg>
+        </button>
+        <button class="fab" id="fitBtn" title="Fit everyone">
+          <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none"/></svg>
+        </button>
+        <button class="fab" id="layersBtn" title="Layers">
+          <svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5-10-5Z" fill="none"/><path d="m2 13 10 5 10-5" fill="none"/></svg>
+        </button>
+      </div>
+      <div class="layers-menu" id="layersMenu" hidden>
+        <label><input type="checkbox" id="layerTrails" checked> Trails</label>
+        <label><input type="checkbox" id="layerWaypoints" checked> Waypoints</label>
+        <label><input type="checkbox" id="layerRange"> Range test</label>
+        <button class="link" id="clearTrailsBtn">Clear trails</button>
+      </div>
+      <div class="compass-hint" id="compassHint">
+        <button class="btn small" id="compassBtn">Enable compass</button>
+      </div>
+      <div class="map-legend" id="mapLegend"></div>
+    </section>
+
+    <!-- Peers -->
+    <section class="panel" id="tab-peers">
+      <div class="panel-inner">
+        <h2>Boards nearby</h2>
+        <p class="muted" id="headingNote"></p>
+        <div id="peerList" class="cards"></div>
+        <p class="empty" id="peerEmpty">No other boards heard yet. They beacon every ~5 s.</p>
+      </div>
+    </section>
+
+    <!-- Sky -->
+    <section class="panel" id="tab-sky">
+      <div class="panel-inner">
+        <h2>GPS</h2>
+        <div class="stats" id="gpsStats"></div>
+        <div class="sky-wrap">
+          <svg id="skyPlot" viewBox="-110 -110 220 220" role="img" aria-label="Satellite sky plot"></svg>
+          <div class="sky-legend" id="skyLegend"></div>
+        </div>
+        <h3>Signal strength (C/N0, dB-Hz)</h3>
+        <div id="snrBars" class="snr-bars"></div>
+      </div>
+    </section>
+
+    <!-- Chat -->
+    <section class="panel" id="tab-chat">
+      <div class="chat">
+        <div class="chat-log" id="chatLog"><p class="empty">No messages yet. Morse from the boards shows up here too.</p></div>
+        <form class="chat-input" id="chatForm" autocomplete="off">
+          <input id="chatText" maxlength="32" placeholder="Message all boards" disabled>
+          <span class="counter" id="chatCount">0/32</span>
+          <button class="btn" id="chatSend" disabled>Send</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Tools -->
+    <section class="panel" id="tab-tools">
+      <div class="panel-inner">
+        <details class="tool" open>
+          <summary>Wi-Fi &amp; Bluetooth scan</summary>
+          <p class="muted">Ask a board to scan its surroundings. Remote results come back over LoRa in a few seconds.</p>
+          <div class="row">
+            <select id="scanTarget"><option value="me">This board</option><option value="all">All boards</option></select>
+            <label class="check"><input type="checkbox" id="scanWifi" checked> Wi-Fi</label>
+            <label class="check"><input type="checkbox" id="scanBle" checked> BLE</label>
+            <button class="btn" id="scanBtn" disabled>Scan</button>
+          </div>
+          <div id="scanResults"></div>
+        </details>
+
+        <details class="tool">
+          <summary>Range test</summary>
+          <p class="muted">Walk around while running. Every beacon heard from another board is logged at this board's position with its signal; missed beacons are logged too.</p>
+          <div class="row">
+            <button class="btn" id="rangeBtn">Start</button>
+            <button class="btn ghost" id="rangeShowBtn">Show on map</button>
+            <button class="btn ghost" id="rangeCsvBtn">Export CSV</button>
+            <button class="btn ghost danger" id="rangeClearBtn">Clear</button>
+          </div>
+          <div class="stats" id="rangeStats"></div>
+        </details>
+
+        <details class="tool">
+          <summary>Waypoints</summary>
+          <div class="row">
+            <input id="markName" maxlength="11" placeholder="Name (e.g. CAR)">
+            <button class="btn" id="markBtn" disabled>Mark here</button>
+          </div>
+          <div id="wpList"></div>
+        </details>
+
+        <details class="tool">
+          <summary>Track (GPX)</summary>
+          <p class="muted" id="trackInfo">The board logs a point every 5 s while moving.</p>
+          <div class="row">
+            <button class="btn" id="gpxBtn" disabled>Download GPX</button>
+            <button class="btn ghost danger" id="gpxClearBtn" disabled>Clear track</button>
+          </div>
+          <progress id="gpxProgress" max="1" value="0" hidden></progress>
+        </details>
+
+        <details class="tool">
+          <summary>Board settings</summary>
+          <form id="settingsForm" class="settings">
+            <label>Leash distance <span class="muted">(m, 0 = off)</span>
+              <input type="number" id="setLeashM" min="0" max="60000" step="10"></label>
+            <label>Leash silence <span class="muted">(min, 0 = off)</span>
+              <input type="number" id="setLeashMin" min="0" max="600"></label>
+            <label>Screen timeout <span class="muted">(s, 0 = never)</span>
+              <input type="number" id="setScreenS" min="0" max="3600" step="5"></label>
+            <label>OLED map orientation
+              <select id="setNorthRight"><option value="1">North → right (held sideways)</option><option value="0">North ↑ up</option></select></label>
+            <button class="btn" id="settingsSave" disabled>Save to board</button>
+          </form>
+        </details>
+
+        <details class="tool">
+          <summary>Bluetooth</summary>
+          <p class="muted">The board only talks to phones paired with the 6-digit code it shows. Forgetting removes every paired phone; you'll pair again on next connect.</p>
+          <button class="btn ghost danger" id="forgetBtn" disabled>Forget paired phones</button>
+        </details>
+
+        <p class="muted small">On the board: hold PRG 3 s for Bluetooth on/off, 6 s to forget phones.</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="map" class="active"><svg viewBox="0 0 24 24"><path d="m9 4-6 2v14l6-2 6 2 6-2V4l-6 2-6-2Z" fill="none"/><path d="M9 4v14M15 6v14"/></svg>Map</button>
+    <button data-tab="peers"><svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3" fill="none"/><circle cx="17" cy="10" r="2.5" fill="none"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 19c.3-2.5 1.8-4.5 3-4.5 2 0 4 2 4 4.5" fill="none"/></svg>Peers</button>
+    <button data-tab="sky"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none"/><circle cx="12" cy="12" r="4.5" fill="none"/><circle cx="15" cy="8" r="1.4"/></svg>Sky</button>
+    <button data-tab="chat"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5Z" fill="none"/></svg>Chat<span class="badge" id="chatBadge" hidden></span></button>
+    <button data-tab="tools"><svg viewBox="0 0 24 24"><path d="M14 6a4 4 0 0 0 5 5l-8 8a2 2 0 0 1-3-3l8-8a4 4 0 0 0-2-2Z" fill="none"/></svg>Tools</button>
+  </nav>
+
+  <div class="modal" id="sosModal" hidden>
+    <div class="modal-card sos">
+      <div class="sos-title">SOS</div>
+      <div id="sosText"></div>
+      <div class="row center">
+        <button class="btn" id="sosShowBtn">Show on map</button>
+        <button class="btn ghost" id="sosAckBtn">Acknowledge</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
