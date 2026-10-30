@@ -100,7 +100,8 @@ export class MapView {
     this.#wpLayer.clearLayers();
     for (const [name, lat, lon] of wps) {
       L.marker([lat, lon], {
-        icon: L.divIcon({ className: '', html: `<div class="wp-marker"><div class="flag">${esc(name)}</div><div class="stem"></div></div>`, iconSize: [0, 0] }),
+        icon: L.divIcon({ className: '', html: `<div class="wp-marker"><svg viewBox="0 0 24 32"><path class="pin-body" d="M12 31C12 31 2 19.5 2 12a10 10 0 0 1 20 0c0 7.5-10 19-10 19Z"/>` +
+          `<circle class="pin-hole" cx="12" cy="12" r="4"/></svg><span class="wp-name">${esc(name)}</span></div>`, iconSize: [0, 0] }),
       }).addTo(this.#wpLayer);
     }
   }

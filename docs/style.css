@@ -217,27 +217,34 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 }
 
 .peer-marker {
-  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px; width: max-content; white-space: nowrap;
   transform: translate(-9px, -9px);
 }
 .peer-marker .pdot {
-  width: 18px; height: 18px; border-radius: 50%; background: #f97316; border: 3px solid #fff;
+  flex: none; width: 18px; height: 18px; border-radius: 50%; background: #f97316; border: 3px solid #fff;
   box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25), 0 2px 6px rgb(0 0 0 / 0.3);
 }
 .peer-marker.stale .pdot { background: #9ca3af; }
 .peer-marker.sos .pdot { background: var(--danger); animation: pulse 0.8s infinite alternate; }
 .peer-marker .plabel {
-  padding: 1px 6px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  flex: none; padding: 1px 6px; border-radius: 6px; font-size: 12px; font-weight: 700;
   background: var(--surface); color: var(--text); border: 1px solid var(--border);
 }
 @keyframes pulse { to { transform: scale(1.35); } }
 
-.wp-marker { transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; }
-.wp-marker .flag {
-  padding: 1px 6px; border-radius: 6px; font-size: 11px; font-weight: 700;
-  background: #7c3aed; color: #fff; white-space: nowrap;
+/* Waypoint: map pin whose tip sits on the spot, name label to its right */
+.wp-marker {
+  position: relative; width: max-content;
+  transform: translate(-12px, -32px); /* pin tip (12, 32) onto the point */
 }
-.wp-marker .stem { width: 2px; height: 10px; background: #7c3aed; }
+.wp-marker svg { display: block; width: 24px; height: 32px; flex: none; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.35)); }
+.wp-marker .pin-body { fill: #7c3aed; stroke: #fff; stroke-width: 2; }
+.wp-marker .pin-hole { fill: #fff; stroke: none; }
+.wp-marker .wp-name {
+  position: absolute; left: 26px; top: 4px; white-space: nowrap;
+  padding: 1px 6px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+}
 
 .dist-label {
   background: var(--surface); color: var(--text); border: 1px solid var(--border);
