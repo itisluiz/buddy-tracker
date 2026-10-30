@@ -25,6 +25,12 @@ Plain HTML/CSS/JS modules, no build step. Leaflet comes from cdnjs, map tiles fr
 Holding PRG ~6 s forgets every paired phone (also available under Tools → Bluetooth). If you do,
 remove the board from Android's Bluetooth settings too before pairing again.
 
+## Installing as an app
+
+It's a PWA: in Chrome use **Tools → App → Install app** (or the browser menu's *Install app*). The installed
+app opens full screen, starts offline, and keeps up to 2000 map tiles you've viewed for use without data.
+Bluetooth works the same as in the browser.
+
 ## Demo mode
 
 Open `index.html?demo` to preview the UI with made-up data, no board needed.

@@ -599,3 +599,22 @@ renderRange();
 
 window.buddy = { link, state }; // handy from the devtools console
 if (new URLSearchParams(location.search).has('demo')) import('./demo.js');
+
+// ---------------------------------------------------------------- PWA
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); // offer it from Tools instead of a mini-infobar
+  installPrompt = e;
+  $('installTool').hidden = false;
+});
+$('installBtn').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  $('installTool').hidden = true;
+});
+window.addEventListener('appinstalled', () => ($('installTool').hidden = true));
